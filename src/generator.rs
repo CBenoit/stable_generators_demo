@@ -53,24 +53,24 @@ type YieldedValue<T> = Arc<Mutex<Option<T>>>;
 
 type ResumedValue<T> = Arc<Mutex<Option<T>>>;
 
-type PinnedFuture<T> = Pin<Box<dyn Future<Output = T> + Send + Sync>>;
+type PinnedFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + Sync + 'a>>;
 
 pub enum GeneratorState<YieldTy, OutTy> {
     Suspended(YieldTy),
     Completed(OutTy),
 }
 
-pub struct Generator<YieldTy, ResumeTy, OutTy> {
+pub struct Generator<'a, YieldTy, ResumeTy, OutTy> {
     yielded_value: YieldedValue<YieldTy>,
     resumed_value: ResumedValue<ResumeTy>,
-    generator: PinnedFuture<OutTy>,
+    generator: PinnedFuture<'a, OutTy>,
 }
 
-impl<YieldTy, ResumeTy, OutTy> Generator<YieldTy, ResumeTy, OutTy> {
+impl<'a, YieldTy, ResumeTy, OutTy> Generator<'a, YieldTy, ResumeTy, OutTy> {
     pub fn new<Producer, Generator>(producer: Producer) -> Self
     where
         Producer: FnOnce(YieldPoint<YieldTy, ResumeTy>) -> Generator,
-        Generator: Future<Output = OutTy> + Send + Sync + 'static,
+        Generator: Future<Output = OutTy> + Send + Sync + 'a,
     {
         let yielded_value = Arc::new(Mutex::new(None));
         let resumed_value = Arc::new(Mutex::new(None));

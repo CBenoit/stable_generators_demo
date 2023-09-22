@@ -7,7 +7,7 @@ fn main() {
     dbg!("Entering main");
 
     let input_url = "https://devolutions.gateway.ninja:8888/KdcProxy";
-    let mut do_something_generator = do_something(input_url.to_owned());
+    let mut do_something_generator = do_something(input_url);
 
     dbg!("Drive the generator");
 
