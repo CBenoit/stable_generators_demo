@@ -1,13 +1,13 @@
 use stable_generators_demo::generator::GeneratorState;
-use stable_generators_demo::something::{do_something, Event, UserResponse};
+use stable_generators_demo::something::{combine_both, Event, UserResponse};
 
 // Example of usage of our generator-based library, no "async" nor "await" in view
 
 fn main() {
     dbg!("Entering main");
 
-    let input_url = "https://devolutions.gateway.ninja:8888/KdcProxy";
-    let mut do_something_generator = do_something(input_url);
+    let input_url = "devolutions.net";
+    let mut do_something_generator = combine_both(input_url);
 
     dbg!("Drive the generator");
 
@@ -25,7 +25,7 @@ fn main() {
                         UserResponse::Payload(vec![1, 2, 3])
                     }
                     Event::PayloadLen(len) => {
-                        assert_eq!(len, 3);
+                        assert!(len == 3 || len == 500);
                         UserResponse::SomeValue(u32::try_from(len).unwrap())
                     }
                 }
@@ -38,5 +38,5 @@ fn main() {
         do_something_state = do_something_generator.resume(dbg!(response));
     };
 
-    assert_eq!(out, 3);
+    assert!(out == 6 || out == 1000);
 }

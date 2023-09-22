@@ -38,13 +38,32 @@ pub struct YieldPoint<YieldTy, ResumeTy> {
     resumed_value: ResumedValue<ResumeTy>,
 }
 
-impl<YieldTy, ResumeTy> YieldPoint<YieldTy, ResumeTy> {
+impl<YieldTy, ResumeTy> YieldPoint<YieldTy, ResumeTy>
+where
+    YieldTy: Unpin,
+{
     pub fn suspend(&mut self, value: YieldTy) -> Interrupt<YieldTy, ResumeTy> {
         Interrupt {
             value_to_yield: Some(value),
             yielded_value: Arc::clone(&self.yielded_value),
             resumed_value: Arc::clone(&self.resumed_value),
             ready_to_resume: false,
+        }
+    }
+
+    pub async fn suspend_from<OutTy>(
+        &mut self,
+        mut generator: Generator<'_, YieldTy, ResumeTy, OutTy>,
+    ) -> OutTy {
+        let mut state = generator.start();
+
+        loop {
+            let resume_value = match state {
+                GeneratorState::Suspended(value) => self.suspend(value).await,
+                GeneratorState::Completed(out) => break out,
+            };
+
+            state = generator.resume(resume_value);
         }
     }
 }

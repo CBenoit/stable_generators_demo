@@ -40,8 +40,34 @@ async fn do_something_impl<'a>(
     some_value
 }
 
+async fn do_something_else_impl(mut yield_point: YieldPoint<Event<'_>, UserResponse>) -> u32 {
+    let user_response = yield_point.suspend(Event::PayloadLen(500)).await;
+
+    let UserResponse::SomeValue(some_value) = user_response else {
+        panic!("not some value")
+    };
+
+    some_value
+}
+
 // The function actually exposed to the user, simply wrapping our underlying "async" state machine
 
-pub fn do_something(url: &str) -> Generator<'_, Event, UserResponse, u32> {
-    Generator::new(move |yield_point| async move { do_something_impl(yield_point, url).await })
+pub fn do_something(url: &str) -> Generator<'_, Event<'_>, UserResponse, u32> {
+    Generator::new(|yield_point| async { do_something_impl(yield_point, url).await })
+}
+
+pub fn do_something_else<'a>() -> Generator<'a, Event<'a>, UserResponse, u32> {
+    Generator::new(do_something_else_impl)
+}
+
+pub fn combine_both(url: &str) -> Generator<'_, Event<'_>, UserResponse, u32> {
+    Generator::new(move |mut yield_point| async move {
+        let output = if url == "devolutions.net" {
+            yield_point.suspend_from(do_something(url)).await
+        } else {
+            yield_point.suspend_from(do_something_else()).await
+        };
+
+        output * 2
+    })
 }
